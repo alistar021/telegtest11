@@ -1,11 +1,10 @@
-import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 # ======= تنظیمات =======
-TOKEN = os.getenv("TELEGRAM_TOKEN")  # توکن ربات از Environment Variable
-CHANNEL_ID = int(os.getenv("CHANNEL_ID"))  # آیدی کانال از Environment Variable
-REGISTER_LINK = os.getenv("REGISTER_LINK")  # لینک ثبت نهایی از Environment Variable
+TOKEN = "8476998300:AAHrIH5HMc9TtXIHd-I8hH5MnDOGAkwMSlI"  # توکن ربات شما
+CHANNEL_ID = -1006758587605  # آیدی عددی کانال خصوصی
+REGISTER_LINK = "https://t.me/YourFinalRegisterLink"       # لینک ثبت نهایی
 # ========================
 
 def start(update: Update, context: CallbackContext):
@@ -34,4 +33,21 @@ def handle_photo(update: Update, context: CallbackContext):
     # دکمه ثبت نهایی
     keyboard = [[InlineKeyboardButton("ثبت نهایی", url=REGISTER_LINK)]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text
+    update.message.reply_text("اطلاعات شما ثبت شد! برای ثبت نهایی روی دکمه زیر کلیک کنید:", reply_markup=reply_markup)
+    
+    # پاک کردن داده‌ها
+    user_data.clear()
+
+def main():
+    updater = Updater(TOKEN, use_context=True)
+    dp = updater.dispatcher
+    
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text))
+    dp.add_handler(MessageHandler(Filters.photo, handle_photo))
+    
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()
