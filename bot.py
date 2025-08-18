@@ -1,15 +1,7 @@
-# bot.py
-import subprocess
-import sys
 import os
 import shutil
 from flask import Flask
 from telegram import Bot
-
-# نصب خودکار کتابخونه‌ها
-subprocess.check_call([sys.executable, "-m", "pip", "install", "python-telegram-bot==13.15"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", "requests==2.31.0"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", "Flask==2.3.2"])
 
 # ---------- تنظیمات ----------
 TOKEN = "8476998300:AAEk3pHApz2Ex1GbZjX7fFc6qL883opak2A"
@@ -43,7 +35,8 @@ def index():
     return "ربات فعال است!"
 
 # ---------- اجرای اصلی ----------
-if name == "__main__":
+if __name__ == "__main__":
     send_photo()
     clear_cache()
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
