@@ -1,42 +1,73 @@
-import os
-import shutil
-from flask import Flask
-from telegram import Bot
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+import logging
 
-# ---------- تنظیمات ----------
-TOKEN = "8476998300:AAEk3pHApz2Ex1GbZjX7fFc6qL883opak2A"
-CHANNEL_ID = "@alialisend123"
-PHOTO_PATH = "image.jpg"  # مسیر عکس برای ارسال
+# ======= تنظیمات =======
+TOKEN = "8476998300:AAHrIH5HMc9TtXIHd-I8hH5MnDOGAkwMSlI"  # توکن ربات شما
+CHANNEL_ID = "@alialisend123"  # آیدی کانال عمومی
+REGISTER_LINK = "https://t.me/YourFinalRegisterLink"  # لینک ثبت نهایی
+# ========================
 
-bot = Bot(token=TOKEN)
+# تنظیمات لاگ برای جلوگیری از کرش
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
-# ---------- ارسال عکس ----------
-def send_photo():
+def start(update: Update, context: CallbackContext):
+    update.message.reply_text("سلام! لطفاً نام و نام خانوادگی خود را ارسال کنید:")
+
+def handle_text(update: Update, context: CallbackContext):
+    user_data = context.user_data
+    if "name" not in user_data:
+        user_data["name"] = update.message.text
+        update.message.reply_text("لطفاً شماره موبایل خود را به صورت صحیح ارسال کنید:")
+    elif "phone" not in user_data:
+        user_data["phone"] = update.message.text
+        update.message.reply_text("لطفاً عکس دانشجویی یا عکس انتخاب واحد موجود در سایت را ارسال کنید:")
+    else:
+        update.message.reply_text("لطفاً عکس دانشجویی یا عکس انتخاب واحد موجود در سایت را ارسال کنید.")
+
+def handle_photo(update: Update, context: CallbackContext):
+    user_data = context.user_data
     try:
-        with open(PHOTO_PATH, "rb") as photo:
-            bot.send_photo(chat_id=CHANNEL_ID, photo=photo)
-        print("عکس ارسال شد.")
+        photo_file = update.message.photo[-1].get_file()
+        caption = f"نام: {user_data.get('name')}\nشماره: {user_data.get('phone')}"
+        
+        # فوروارد به کانال
+        photo_file.download("temp.jpg")
+        context.bot.send_photo(chat_id=CHANNEL_ID, photo=open("temp.jpg", "rb"), caption=caption)
+        
+        # دکمه ثبت نهایی
+        keyboard = [[InlineKeyboardButton("ثبت نهایی", url=REGISTER_LINK)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        update.message.reply_text(
+            "اطلاعات شما ثبت شد! برای ثبت نهایی روی دکمه زیر کلیک کنید:", 
+            reply_markup=reply_markup
+        )
+
+        # پیام تشکر نهایی
+        update.message.reply_text(
+            "تشکر از این که ما را در ارائه خدمات بهتر دانشجویی یاری می‌کنید.\n"
+            "مارا در تریبون دانشگاه آزاد بروجرد دنبال کنید."
+        )
+        
+        # پاک کردن داده‌ها
+        user_data.clear()
     except Exception as e:
-        print("خطا در ارسال عکس:", e)
+        logging.error(f"Error sending photo: {e}")
+        update.message.reply_text("مشکلی پیش آمد! لطفاً دوباره امتحان کنید.")
 
-# ---------- پاک کردن کش و فایل‌های موقت ----------
-def clear_cache():
-    temp_dirs = ["./downloads", "./temp"]
-    for d in temp_dirs:
-        if os.path.exists(d):
-            shutil.rmtree(d)
-            print(f"پاک شد: {d}")
+def main():
+    updater = Updater(TOKEN, use_context=True)
+    dp = updater.dispatcher
+    
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text))
+    dp.add_handler(MessageHandler(Filters.photo, handle_photo))
+    
+    updater.start_polling()
+    updater.idle()
 
-# ---------- Webhook و Flask ----------
-app = Flask(__name__)
-
-@app.route("/")
-def index():
-    return "ربات فعال است!"
-
-# ---------- اجرای اصلی ----------
 if __name__ == "__main__":
-    send_photo()
-    clear_cache()
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    main()
