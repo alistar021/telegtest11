@@ -41,12 +41,13 @@ def handle_text(update: Update, context: CallbackContext):
         return
 
     # مرحله شماره موبایل
-    if "waiting_for_phone" in user_data and "phone" not in user_data:
+    if user_data.get("waiting_for_phone") and "phone" not in user_data:
         phone = normalize_digits(text)
         if not re.fullmatch(r"09\d{9}", phone):
             update.message.reply_text("❌ شماره موبایل معتبر نیست! باید 11 رقمی و با 09 شروع شود.")
             return
         user_data["phone"] = phone
+        user_data.pop("waiting_for_phone", None)  # پاک کردن وضعیت انتظار شماره
         update.message.reply_text("📸 لطفاً عکس دانشجویی یا انتخاب واحد خود را ارسال کنید:")
         return
 
@@ -60,10 +61,11 @@ def handle_photo(update: Update, context: CallbackContext):
 
     photo_file = update.message.photo[-1].get_file()
     caption = f"👤 نام: {user_data.get('name')}\n📱 شماره: {user_data.get('phone')}"
-    photo_file.download("temp.jpg")
 
     # ارسال به کانال
-    context.bot.send_photo(chat_id=CHANNEL_ID, photo=open("temp.jpg", "rb"), caption=caption)
+    photo_file.download("temp.jpg")
+    with open("temp.jpg", "rb") as f:
+        context.bot.send_photo(chat_id=CHANNEL_ID, photo=f, caption=caption)
 
     keyboard = [[InlineKeyboardButton("✅ ثبت نهایی", url=REGISTER_LINK)]]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -77,7 +79,7 @@ def handle_photo(update: Update, context: CallbackContext):
         "🎓 تیم فنی پس از بررسی اطلاعات شما، به صورت خودکار شما را وارد گروه خواهند کرد. 🌟"
     )
 
-    user_data.clear()
+    user_data.clear()  # پاک کردن داده‌ها بعد از اتمام
 
 def button_handler(update: Update, context: CallbackContext):
     query = update.callback_query
