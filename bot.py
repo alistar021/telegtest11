@@ -1,49 +1,49 @@
+# bot.py
+import subprocess
+import sys
 import os
-from flask import Flask, request
-from telegram.ext import CommandHandler, Dispatcher
-from telegram import Update, Bot
+import shutil
+from flask import Flask
+from telegram import Bot
 
-# ====================
-# تنظیمات
-# ====================
-# توکن ربات (اینجا مستقیم گذاشتم، می‌تونی بعداً در Railway → Variables هم بذاری)
+# نصب خودکار کتابخونه‌ها
+subprocess.check_call([sys.executable, "-m", "pip", "install", "python-telegram-bot==13.15"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "requests==2.31.0"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "Flask==2.3.2"])
+
+# ---------- تنظیمات ----------
 TOKEN = "8476998300:AAEk3pHApz2Ex1GbZjX7fFc6qL883opak2A"
+CHANNEL_ID = "@alialisend123"
+PHOTO_PATH = "image.jpg"  # مسیر عکس برای ارسال
 
-# پورت Railway
-PORT = int(os.getenv("PORT", 8080))
+bot = Bot(token=TOKEN)
 
-# آدرس Railway (اسم پروژه رو ali گذاشتیم)
-APP_URL = f"https://ali.up.railway.app/"
+# ---------- ارسال عکس ----------
+def send_photo():
+    try:
+        with open(PHOTO_PATH, "rb") as photo:
+            bot.send_photo(chat_id=CHANNEL_ID, photo=photo)
+        print("عکس ارسال شد.")
+    except Exception as e:
+        print("خطا در ارسال عکس:", e)
 
-# ====================
-# تعریف دستورات
-# ====================
-def start(update, context):
-    update.message.reply_text("سلام 👋 ربات با Webhook روی Railway فعاله 🚀")
+# ---------- پاک کردن کش و فایل‌های موقت ----------
+def clear_cache():
+    temp_dirs = ["./downloads", "./temp"]
+    for d in temp_dirs:
+        if os.path.exists(d):
+            shutil.rmtree(d)
+            print(f"پاک شد: {d}")
 
-# ====================
-# تنظیم ربات
-# ====================
-bot = Bot(TOKEN)
-dispatcher = Dispatcher(bot, None, workers=0)
-dispatcher.add_handler(CommandHandler("start", start))
-
-# ====================
-# Flask Webhook
-# ====================
-app = Flask(_name_)
-
-@app.route(f"/{TOKEN}", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    dispatcher.process_update(update)
-    return "ok"
+# ---------- Webhook و Flask ----------
+app = Flask(__name__)
 
 @app.route("/")
-def home():
-    return "ربات روشنه ✅"
+def index():
+    return "ربات فعال است!"
 
-if _name_ == "_main_":
-    # ست کردن وبهوک
-    bot.set_webhook(APP_URL + TOKEN)
-    app.run(host="0.0.0.0", port=PORT)
+# ---------- اجرای اصلی ----------
+if name == "__main__":
+    send_photo()
+    clear_cache()
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
