@@ -1,94 +1,75 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, CallbackQueryHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 import logging
 import re
 
 # ======= تنظیمات =======
-TOKEN = "توکن_ربات"
-CHANNEL_ID = "@alialisend123"   # یا آیدی عددی کانال
+TOKEN = "توکن_ربات_شما_اینجا"  # توکن ربات
+CHANNEL_ID = "@alialisend123"     # آیدی عددی یا یوزرنیم کانال
 REGISTER_LINK = "https://t.me/azadunivercitybrj"
 # ========================
 
 logging.basicConfig(level=logging.INFO)
 
-# تبدیل اعداد فارسی به انگلیسی
-def normalize_digits(text):
-    persian_digits = "۰۱۲۳۴۵۶۷۸۹"
-    english_digits = "0123456789"
-    trans_table = str.maketrans(persian_digits, english_digits)
-    return text.translate(trans_table)
-
 def start(update: Update, context: CallbackContext):
-    update.message.reply_text("🎉 سلام! خوش آمدید 🌟\nلطفاً نام و نام خانوادگی خود را ارسال کنید:")
+    update.message.reply_text(
+        "🎉 سلام! خوش اومدی 🌟\nلطفاً نام و نام خانوادگی خود را ارسال کن:"
+    )
 
 def handle_text(update: Update, context: CallbackContext):
     user_data = context.user_data
     text = update.message.text.strip()
 
-    # مرحله نام (بدون محدودیت)
+    # نام و نام خانوادگی
     if "name" not in user_data:
+        if len(text.split()) < 2:
+            update.message.reply_text("❌ لطفاً نام و نام خانوادگی خود را به صورت کامل وارد کن.")
+            return
         user_data["name"] = text
+        update.message.reply_text(f"👋 خوش آمدی {text}! حالا شماره موبایل خود را ارسال کن:")
+        return
 
-        keyboard = [[InlineKeyboardButton("🚀 شروع اعتبارسنجی", callback_data="start_verification")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
+    # شماره موبایل
+    if "phone" not in user_data:
+        if not re.fullmatch(r"09\d{9}", text):
+            update.message.reply_text("❌ شماره موبایل صحیح نیست! لطفاً شماره 11 رقمی شروع با 09 وارد کن.")
+            return
+        user_data["phone"] = text
         update.message.reply_text(
-            f"👋 خوش آمدید {text}!\n\n"
-            "📌 برای امنیت و تکمیل لیست دانشجویان، لازم است شماره موبایل و کارت دانشجویی شما تأیید شود.\n"
-            "برای شروع دکمه زیر را بزنید 👇",
-            reply_markup=reply_markup
+            "📸 لطفاً عکس دانشجویی یا عکس انتخاب واحد را ارسال کن:"
         )
         return
 
-    # مرحله شماره موبایل
-    if user_data.get("waiting_for_phone") and "phone" not in user_data:
-        phone = normalize_digits(text)
-        if not re.fullmatch(r"09\d{9}", phone):
-            update.message.reply_text("❌ شماره موبایل معتبر نیست! باید 11 رقمی و با 09 شروع شود.")
-            return
-        user_data["phone"] = phone
-        user_data.pop("waiting_for_phone", None)  # پاک کردن وضعیت انتظار شماره
-        update.message.reply_text("📸 لطفاً عکس دانشجویی یا انتخاب واحد خود را ارسال کنید:")
-        return
-
-    update.message.reply_text("❗ لطفاً طبق مراحل پیش بروید.")
+    update.message.reply_text(
+        "❗ لطفاً عکس دانشجویی یا انتخاب واحد خود را ارسال کنید."
+    )
 
 def handle_photo(update: Update, context: CallbackContext):
     user_data = context.user_data
-    if "name" not in user_data or "phone" not in user_data:
-        update.message.reply_text("❌ لطفاً ابتدا نام و شماره موبایل خود را وارد کنید.")
-        return
-
     photo_file = update.message.photo[-1].get_file()
     caption = f"👤 نام: {user_data.get('name')}\n📱 شماره: {user_data.get('phone')}"
 
-    # ارسال به کانال
+    # فوروارد به کانال
     photo_file.download("temp.jpg")
-    with open("temp.jpg", "rb") as f:
-        context.bot.send_photo(chat_id=CHANNEL_ID, photo=f, caption=caption)
+    context.bot.send_photo(chat_id=CHANNEL_ID, photo=open("temp.jpg", "rb"), caption=caption)
 
-    keyboard = [[InlineKeyboardButton("✅ ثبت نهایی", url=REGISTER_LINK)]]
+    # دکمه ثبت نهایی
+    keyboard = [[InlineKeyboardButton("ثبت نهایی ✅", url=REGISTER_LINK)]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
+    
     update.message.reply_text(
-        "✅ اطلاعات شما ثبت شد!\nبرای تکمیل ثبت‌نام روی دکمه زیر کلیک کنید 👇",
+        "✅ اطلاعات شما ثبت شد! برای ثبت نهایی روی دکمه زیر کلیک کنید.",
         reply_markup=reply_markup
     )
 
+    # پیام تشکر رسمی بعد از ثبت نهایی
     update.message.reply_text(
-        "🎓 تیم فنی پس از بررسی اطلاعات شما، به صورت خودکار شما را وارد گروه خواهند کرد. 🌟"
+        "🎓 تیم فنی پس از بررسی اطلاعات شما، به صورت اتومات شمارو وارد گروه خواهند کرد. "
+        "ممنون که در ارائه خدمات بهتر همراه ما هستید! 🌟"
     )
 
-    user_data.clear()  # پاک کردن داده‌ها بعد از اتمام
-
-def button_handler(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.answer()
-    user_data = context.user_data
-
-    if query.data == "start_verification":
-        user_data["waiting_for_phone"] = True
-        query.message.reply_text("📱 لطفاً شماره موبایل خود را وارد کنید:")
+    # پاک کردن داده‌ها
+    user_data.clear()
 
 def main():
     updater = Updater(TOKEN, use_context=True)
@@ -97,7 +78,6 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text))
     dp.add_handler(MessageHandler(Filters.photo, handle_photo))
-    dp.add_handler(CallbackQueryHandler(button_handler))
 
     updater.start_polling()
     updater.idle()
