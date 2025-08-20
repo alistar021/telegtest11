@@ -1,34 +1,37 @@
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-BOT_TOKEN = "8476998300:AAEcUHxNBmBdoYvm3Q3DV9kftBho-ABzJRE"
-CHANNEL_USERNAME = "@alialisend123"
+# 🔑 توکن و کانال عمومی
+BOT_TOKEN = "8476998300:AAGmZpHiHEpe69PERCBnrPnhXdpV5oaEjaY"
+CHANNEL_USERNAME = "@Azadborojerdbot"   # کانال عمومی
 
-# هندلر برای دستور /start
+# دستور start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("سلام! پیام شما دریافت شد ✅")
-    # ارسال پیام کاربر به کانال
-    try:
-        await context.bot.send_message(chat_id=CHANNEL_USERNAME, 
-                                       text=f"پیام جدید از کاربر: {update.message.text}")
-    except Exception as e:
-        print("ارسال به کانال ناموفق:", e)
+    await update.message.reply_text("سلام 👋\nپیام‌هات رو بفرست، من می‌فرستم داخل کانال 📢")
 
-# هندلر برای تمام پیام‌ها
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("پیام شما دریافت شد ✅")
-    try:
-        await context.bot.send_message(chat_id=CHANNEL_USERNAME, 
-                                       text=f"پیام جدید از کاربر: {update.message.text}")
-    except Exception as e:
-        print("ارسال به کانال ناموفق:", e)
+# هندلر پیام‌ها
+async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    text = update.message.text
 
-# ساخت اپلیکیشن و اضافه کردن هندلرها
-app = ApplicationBuilder().token(BOT_TOKEN).build()
+    # ارسال به کانال
+    await context.bot.send_message(
+        chat_id=CHANNEL_USERNAME,
+        text=f"📩 پیام از {user.first_name} (@{user.username}):\n\n{text}"
+    )
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    # جواب به کاربر
+    await update.message.reply_text("✅ پیام شما به کانال ارسال شد.")
 
-# اجرای ربات
-print("ربات در حال اجراست...")
-app.run_polling()
+# ران کردن ربات
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, forward_to_channel))
+
+    print("🤖 ربات فعال شد...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
