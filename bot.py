@@ -1,10 +1,10 @@
+import os
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
-TOKEN = "8476998300:AAEcUHxNBmBdoYvm3Q3DV9kftBho-ABzJRE"
-CHANNEL_ID = "@alialisend123"  # کانال عمومی
+TOKEN = os.getenv("BOT_TOKEN")  # توکن ربات
+CHANNEL_ID = os.getenv("CHANNEL_USERNAME")  # مثلا "@alialisend123"
 
-# مرحله‌ای برای ذخیره وضعیت کاربر
 user_state = {}
 user_data = {}
 
@@ -22,14 +22,12 @@ def handle_message(update: Update, context: CallbackContext):
         context.bot.send_message(chat_id=chat_id, text="لطفا ابتدا /start را بزنید.")
         return
 
-    # مرحله دریافت نام
     if user_state[chat_id] == "WAIT_NAME":
         user_data[chat_id]['name'] = text
         user_state[chat_id] = "WAIT_PHONE"
         context.bot.send_message(chat_id=chat_id, text="شماره خود را وارد کنید.")
         return
 
-    # مرحله دریافت شماره
     if user_state[chat_id] == "WAIT_PHONE":
         user_data[chat_id]['phone'] = text
         user_state[chat_id] = "WAIT_PHOTO"
@@ -51,7 +49,6 @@ def handle_photo(update: Update, context: CallbackContext):
     )
 
     context.bot.send_message(chat_id=chat_id, text="اطلاعات شما ثبت شد.")
-    # پاک کردن داده‌ها بعد از ارسال
     del user_state[chat_id]
     del user_data[chat_id]
 
