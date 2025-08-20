@@ -1,36 +1,36 @@
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import Application, CommandHandler, ContextTypes
 
-# 🔑 توکن و کانال عمومی
+# توکن ربات
 BOT_TOKEN = "8476998300:AAGmZpHiHEpe69PERCBnrPnhXdpV5oaEjaY"
-CHANNEL_USERNAME = "@Azadborojerdbot"   # کانال عمومی
+
+# آیدی کانال مقصد (کانال باید Public باشه و ربات داخلش ادمین باشه)
+CHANNEL_USERNAME = "@alialisend123"
 
 # دستور start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("سلام 👋\nپیام‌هات رو بفرست، من می‌فرستم داخل کانال 📢")
-
-# هندلر پیام‌ها
-async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    text = update.message.text
-
-    # ارسال به کانال
-    await context.bot.send_message(
-        chat_id=CHANNEL_USERNAME,
-        text=f"📩 پیام از {user.first_name} (@{user.username}):\n\n{text}"
+    user = update.message.from_user
+    await update.message.reply_text(
+        f"سلام {user.first_name}! 👋\n"
+        f"هر پیامی با دستور /send بفرستی → به کانال {CHANNEL_USERNAME} میره ✅"
     )
 
-    # جواب به کاربر
-    await update.message.reply_text("✅ پیام شما به کانال ارسال شد.")
+# دستور send
+async def forward(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message and update.message.text:
+        await context.bot.send_message(
+            chat_id=CHANNEL_USERNAME, 
+            text=f"📩 پیام از {update.message.from_user.first_name}:\n\n{update.message.text}"
+        )
+        await update.message.reply_text("✅ پیام به کانال فرستاده شد!")
 
-# ران کردن ربات
+# اجرای ربات
 def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, forward_to_channel))
+    app.add_handler(CommandHandler("send", forward))
 
-    print("🤖 ربات فعال شد...")
     app.run_polling()
 
 if __name__ == "__main__":
