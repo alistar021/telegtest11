@@ -1,28 +1,31 @@
-import os
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram import Bot, Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
-# دریافت توکن ربات و نام کانال از Environment Variables
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME")  # مثال: @alialisend123
+# ====== تنظیمات ربات ======
+BOT_TOKEN = "8476998300:AAEcUHxNBmBdoYvm3Q3DV9kftBho-ABzJRE"  # توکن ربات
+CHANNEL_USERNAME = "@alialisend123"  # نام کانال
 
-if not BOT_TOKEN or not CHANNEL_USERNAME:
-    raise ValueError("لطفاً BOT_TOKEN و CHANNEL_USERNAME را در Environment Variables تعریف کنید!")
+# ساخت شیء ربات
+bot = Bot(token=BOT_TOKEN)
+updater = Updater(token=BOT_TOKEN, use_context=True)
+dispatcher = updater.dispatcher
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    # پیام خوش آمد
-    await update.message.reply_text(f"سلام {user.first_name}! پیام شما دریافت شد.")
-    
-    # ارسال اطلاعات کاربر به کانال
-    message = f"کاربر جدید:\nاسم: {user.first_name}\nآیدی: {user.id}\nیوزرنیم: @{user.username if user.username else 'ندارد'}"
-    await context.bot.send_message(chat_id=CHANNEL_USERNAME, text=message)
+# ====== دستور استارت ======
+def start(update: Update, context):
+    update.message.reply_text("سلام! پیام شما به کانال ارسال می‌شود.")
 
-if __name__ == "__main__":
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    
-    start_handler = CommandHandler("start", start)
-    app.add_handler(start_handler)
-    
-    print("Bot is running...")
-    app.run_polling()
+start_handler = CommandHandler('start', start)
+dispatcher.add_handler(start_handler)
+
+# ====== دریافت پیام و ارسال به کانال ======
+def forward_to_channel(update: Update, context):
+    message_text = update.message.text
+    bot.send_message(chat_id=CHANNEL_USERNAME, text=message_text)
+    update.message.reply_text("پیام شما ارسال شد ✅")
+
+message_handler = MessageHandler(Filters.text & (~Filters.command), forward_to_channel)
+dispatcher.add_handler(message_handler)
+
+# ====== اجرای ربات ======
+updater.start_polling()
+updater.idle()
