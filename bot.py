@@ -1,20 +1,26 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import Bot
 
-BOT_TOKEN = "توکن_ربات_تو"
+# توکن ربات و یوزرنیم کانال
+BOT_TOKEN = "8476998300:AAEcUHxNBmBdoYvm3Q3DV9kftBho-ABzJRE"
 CHANNEL_USERNAME = "@alialisend123"
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("سلام! پیام شما به کانال ارسال می‌شود.")
+# ایجاد نمونه ربات
+bot = Bot(token=BOT_TOKEN)
 
-async def forward_to_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message_text = update.message.text
-    bot = context.bot
-    await bot.send_message(chat_id=CHANNEL_USERNAME, text=message_text)
-    await update.message.reply_text("پیام شما ارسال شد ✅")
+# تست اتصال ربات
+try:
+    info = bot.get_me()
+    print("ربات متصل شد ✅")
+    print("نام ربات:", info.first_name)
+    print("یوزرنیم ربات:", info.username)
+except Exception as e:
+    print("اتصال ربات ناموفق ❌")
+    print("خطا:", e)
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), forward_to_channel))
-
-app.run_polling()
+# تست ارسال پیام به کانال
+try:
+    bot.send_message(chat_id=CHANNEL_USERNAME, text="پیام تست ✅")
+    print("ارسال پیام به کانال موفق ✅")
+except Exception as e:
+    print("ارسال پیام به کانال ناموفق ❌")
+    print("خطا:", e)
