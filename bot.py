@@ -1,55 +1,71 @@
-import os
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
-# ======= تنظیمات =======
-TOKEN = "8476998300:AAHrIH5HMc9TtXIHd-I8hH5MnDOGAkwMSlI"
-CHANNEL_ID = "@alialisend123"
-REGISTER_LINK = "https://t.me/azadborojerd"
-# ========================
+# --- توکن ربات و یوزرنیم کانال عمومی ---
+TOKEN = "8476998300:AAEcUHxNBmBdoYvm3Q3DV9kftBho-ABzJRE"
+CHANNEL_ID = "@alialisend123"  # کانال عمومی
 
+# --- دیتاست کاربر ---
+user_data = {}
+
+# --- دستور /start ---
 def start(update: Update, context: CallbackContext):
-    update.message.reply_text("سلام! لطفاً نام و نام خانوادگی خود را ارسال کنید:")
-
-def handle_text(update: Update, context: CallbackContext):
-    user_data = context.user_data
-    if "name" not in user_data:
-        user_data["name"] = update.message.text
-        update.message.reply_text("لطفاً شماره موبایل خود را ارسال کنید:")
-    elif "phone" not in user_data:
-        user_data["phone"] = update.message.text
-        update.message.reply_text("لطفاً عکس کارت ملی خود را ارسال کنید:")
-    else:
-        update.message.reply_text("لطفاً عکس کارت ملی خود را ارسال کنید.")
-
-def handle_photo(update: Update, context: CallbackContext):
-    user_data = context.user_data
-    photo_file = update.message.photo[-1].get_file()
-    caption = f"نام: {user_data.get('name')}\nشماره: {user_data.get('phone')}"
-    
-    # فوروارد به کانال خصوصی
-    photo_file.download("temp.jpg")
-    context.bot.send_photo(chat_id=CHANNEL_ID, photo=open("temp.jpg", "rb"), caption=caption)
-    
-    # دکمه ثبت نهایی
-    keyboard = [[InlineKeyboardButton("ثبت نهایی", url=REGISTER_LINK)]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text(
-        "اطلاعات شما ثبت شد! برای ثبت نهایی روی دکمه زیر کلیک کنید:", 
-        reply_markup=reply_markup
+    chat_id = update.effective_chat.id
+    context.bot.send_message(
+        chat_id=chat_id,
+        text="سلام! به ربات خوش آمدید.\nلطفا نام و نام خانوادگی خود را ارسال کنید."
     )
-    
-    # پاک کردن داده‌ها
-    user_data.clear()
+    user_data[chat_id] = {}
 
+# --- دریافت نام ---
+def get_name(update: Update, context: CallbackContext):
+    chat_id = update.effective_chat.id
+    if chat_id in user_data and 'name' not in user_data[chat_id]:
+        user_data[chat_id]['name'] = update.message.text
+        context.bot.send_message(chat_id=chat_id, text="لطفا شماره موبایل خود را وارد کنید.")
+
+# --- دریافت شماره موبایل ---
+def get_phone(update: Update, context: CallbackContext):
+    chat_id = update.effective_chat.id
+    if chat_id in user_data and 'name' in user_data[chat_id] and 'phone' not in user_data[chat_id]:
+        user_data[chat_id]['phone'] = update.message.text
+        context.bot.send_message(chat_id=chat_id, text="لطفا عکس انتخاب واحد خود را ارسال کنید.")
+
+# --- دریافت عکس ---
+def get_photo(update: Update, context: CallbackContext):
+    chat_id = update.effective_chat.id
+    if chat_id in user_data and 'name' in user_data[chat_id] and 'phone' in user_data[chat_id]:
+        file_id = update.message.photo[-1].file_id
+        user_data[chat_id]['photo'] = file_id
+
+        # ارسال اطلاعات به کانال عمومی
+        context.bot.send_message(
+            chat_id=CHANNEL_ID,
+            text=(
+                f"📌 نام: {user_data[chat_id]['name']}\n"
+                f"📱 شماره: {user_data[chat_id]['phone']}\n"
+                f"🖼️ عکس انتخاب واحد: {file_id}"
+            )
+        )
+
+        # پیام تایید به کاربر
+        context.bot.send_message(chat_id=chat_id, text="با تشکر! اطلاعات شما ثبت شد.")
+
+        # پاک کردن داده کاربر
+        del user_data[chat_id]
+
+# --- اجرای ربات ---
 def main():
-    updater = Updater(TOKEN, use_context=True)
-    dp = updater.dispatcher
-    
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text))
-    dp.add_handler(MessageHandler(Filters.photo, handle_photo))
-    
+    updater = Updater(TOKEN)
+    dispatcher = updater.dispatcher
+
+    # هندلرها
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, get_name))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, get_phone))
+    dispatcher.add_handler(MessageHandler(Filters.photo, get_photo))
+
+    # شروع ربات
     updater.start_polling()
     updater.idle()
 
