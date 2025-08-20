@@ -1,67 +1,28 @@
 import os
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-TOKEN = os.getenv("BOT_TOKEN")  # توکن ربات
-CHANNEL_ID = os.getenv("CHANNEL_USERNAME")  # مثلا "@alialisend123"
+# دریافت توکن ربات و نام کانال از Environment Variables
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME")  # مثال: @alialisend123
 
-user_state = {}
-user_data = {}
+if not BOT_TOKEN or not CHANNEL_USERNAME:
+    raise ValueError("لطفاً BOT_TOKEN و CHANNEL_USERNAME را در Environment Variables تعریف کنید!")
 
-def start(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
-    user_state[chat_id] = "WAIT_NAME"
-    user_data[chat_id] = {}
-    context.bot.send_message(chat_id=chat_id, text="سلام! لطفا نام خود را وارد کنید.")
-
-def handle_message(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
-    text = update.message.text
-
-    if chat_id not in user_state:
-        context.bot.send_message(chat_id=chat_id, text="لطفا ابتدا /start را بزنید.")
-        return
-
-    if user_state[chat_id] == "WAIT_NAME":
-        user_data[chat_id]['name'] = text
-        user_state[chat_id] = "WAIT_PHONE"
-        context.bot.send_message(chat_id=chat_id, text="شماره خود را وارد کنید.")
-        return
-
-    if user_state[chat_id] == "WAIT_PHONE":
-        user_data[chat_id]['phone'] = text
-        user_state[chat_id] = "WAIT_PHOTO"
-        context.bot.send_message(chat_id=chat_id, text="لطفا عکس خود را ارسال کنید.")
-        return
-
-def handle_photo(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
-
-    if chat_id not in user_state or user_state[chat_id] != "WAIT_PHOTO":
-        context.bot.send_message(chat_id=chat_id, text="لطفا ابتدا /start را بزنید.")
-        return
-
-    photo_file = update.message.photo[-1].get_file()
-    context.bot.send_photo(
-        chat_id=CHANNEL_ID,
-        photo=photo_file.file_id,
-        caption=f"📌 نام: {user_data[chat_id]['name']}\n📱 شماره: {user_data[chat_id]['phone']}"
-    )
-
-    context.bot.send_message(chat_id=chat_id, text="اطلاعات شما ثبت شد.")
-    del user_state[chat_id]
-    del user_data[chat_id]
-
-def main():
-    updater = Updater(TOKEN)
-    dp = updater.dispatcher
-
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
-    dp.add_handler(MessageHandler(Filters.photo, handle_photo))
-
-    updater.start_polling()
-    updater.idle()
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    # پیام خوش آمد
+    await update.message.reply_text(f"سلام {user.first_name}! پیام شما دریافت شد.")
+    
+    # ارسال اطلاعات کاربر به کانال
+    message = f"کاربر جدید:\nاسم: {user.first_name}\nآیدی: {user.id}\nیوزرنیم: @{user.username if user.username else 'ندارد'}"
+    await context.bot.send_message(chat_id=CHANNEL_USERNAME, text=message)
 
 if __name__ == "__main__":
-    main()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    
+    start_handler = CommandHandler("start", start)
+    app.add_handler(start_handler)
+    
+    print("Bot is running...")
+    app.run_polling()
